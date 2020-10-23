@@ -26,4 +26,4 @@ export type State = {
     connection: Option<Connection>,
 };
 
-export type GameState = 'lobby' | 'task' | 'discussion'
+export type GameState = 'lobby' | 'tasks' | 'discussion' | 'menu';

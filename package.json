@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "clean": "rimraf build",
-    "start": "npm run bot:run",
+    "start": "npm run bot",
     "keycode:run": "node build/keycode.js",
     "bot:run": "node build/bot.js",
     "keycode": "run-s build keycode:run",

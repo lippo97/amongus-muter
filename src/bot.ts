@@ -21,7 +21,7 @@ const MQTT_HOST = process.env.HOST || 'localhost';
 const MQTT_PORT = parseInt(process.env.PORT || '1883');
 const MQTT_URI = `${MQTT_PROCOL}://${MQTT_HOST}:${MQTT_PORT}`;
 
-const STATE_CHANGE = 'stateChange';
+const GAME_STATE = 'gameState';
 const TOKEN = process.env.DISCORD_TOKEN
 const myShortcut = [parseInt(process.env.ENABLE_SHORTCUT) || 67];
 
@@ -37,7 +37,7 @@ const state: State = {
     connection: O.none,
 }
 
-const getOperations = (state: State) => ({ members }: Discord.VoiceChannel) => {
+const getOperations = ({ members }: Discord.VoiceChannel) => {
     const refresh = () => {
         const { enabled, muted } = state;
         console.log(`Refreshing state: ${JSON.stringify({ enabled, muted })}`);
@@ -65,17 +65,15 @@ const getOperations = (state: State) => ({ members }: Discord.VoiceChannel) => {
 async function startGame(message: Discord.Message): Promise<void> {
 
     const startGameActions = async (c: Discord.VoiceChannel) => {
-        const { toggleEnabled, setMuted } = getOperations(state)(c);
+        const { toggleEnabled, setMuted } = getOperations(c);
 
         const mqttClient = await mqtt.connectAsync(MQTT_URI);
-        // mqttClient.on('connect', async function() {
-            await mqttClient.subscribe('stateChange');
-        // })
+		await mqttClient.subscribe(GAME_STATE);
 
         mqttClient.on('message', async (topic: string, message: any) => {
             console.log(topic, message.toString())
             await toggleEnabled()
-            if (topic === STATE_CHANGE) {
+            if (topic === GAME_STATE) {
                 const res = await pipe(
                     (message.toString() as string).toLowerCase() as GameState,
                     TE.right,
@@ -112,7 +110,7 @@ async function startGame(message: Discord.Message): Promise<void> {
 async function endGame(message: Discord.Message): Promise<void> {
 
     const endGameActions = (c: Discord.VoiceChannel) => {
-        const { setMuted } = getOperations(state)(c);
+        const { setMuted } = getOperations(c);
         return setMuted(false);
     }
 
@@ -131,7 +129,7 @@ async function endGame(message: Discord.Message): Promise<void> {
     pipe(
         state.connection,
         O.map(([mqttClient, ioHookId, voiceConnection]) => {
-            mqttClient.unsubscribe(STATE_CHANGE);
+            mqttClient.unsubscribe(GAME_STATE);
             ioHook.unregisterShortcut(ioHookId);
             voiceConnection.disconnect()
             ioHook.stop();
