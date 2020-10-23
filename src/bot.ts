@@ -7,7 +7,7 @@ import * as O from 'fp-ts/lib/Option';
 import { Option } from 'fp-ts/lib/Option';
 import * as TE from 'fp-ts/lib/TaskEither';
 import ioHook from 'iohook';
-import mqtt from 'mqtt';
+import mqtt from 'async-mqtt';
 import { Connection, GameState, State } from './types';
 import { shouldMute } from './utils';
 
@@ -64,13 +64,13 @@ const getOperations = (state: State) => ({ members }: Discord.VoiceChannel) => {
 
 async function startGame(message: Discord.Message): Promise<void> {
 
-    const startGameActions = (c: Discord.VoiceChannel) => {
+    const startGameActions = async (c: Discord.VoiceChannel) => {
         const { toggleEnabled, setMuted } = getOperations(state)(c);
 
-        const mqttClient = mqtt.connect(MQTT_URI);
-        mqttClient.on('connect', function() {
-            mqttClient.subscribe('stateChange');
-        })
+        const mqttClient = await mqtt.connectAsync(MQTT_URI);
+        // mqttClient.on('connect', async function() {
+            await mqttClient.subscribe('stateChange');
+        // })
 
         mqttClient.on('message', async (topic: string, message: any) => {
             console.log(topic, message.toString())
