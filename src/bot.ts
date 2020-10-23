@@ -37,7 +37,7 @@ const state: State = {
     connection: O.none,
 }
 
-const getOperations = ({ members }: Discord.VoiceChannel) => {
+const getOperations = (state: State) => ({ members }: Discord.VoiceChannel) => {
     const refresh = () => {
         const { enabled, muted } = state;
         console.log(`Refreshing state: ${JSON.stringify({ enabled, muted })}`);
@@ -65,14 +65,14 @@ const getOperations = ({ members }: Discord.VoiceChannel) => {
 async function startGame(message: Discord.Message): Promise<void> {
 
     const startGameActions = async (c: Discord.VoiceChannel) => {
-        const { toggleEnabled, setMuted } = getOperations(c);
+        const { toggleEnabled, setMuted } = getOperations(state)(c);
 
         const mqttClient = await mqtt.connectAsync(MQTT_URI);
 		await mqttClient.subscribe(GAME_STATE);
 
         mqttClient.on('message', async (topic: string, message: any) => {
             console.log(topic, message.toString())
-            await toggleEnabled()
+            // await toggleEnabled()
             if (topic === GAME_STATE) {
                 const res = await pipe(
                     (message.toString() as string).toLowerCase() as GameState,
@@ -110,7 +110,7 @@ async function startGame(message: Discord.Message): Promise<void> {
 async function endGame(message: Discord.Message): Promise<void> {
 
     const endGameActions = (c: Discord.VoiceChannel) => {
-        const { setMuted } = getOperations(c);
+        const { setMuted } = getOperations(state)(c);
         return setMuted(false);
     }
 
