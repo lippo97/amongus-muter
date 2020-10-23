@@ -23,6 +23,9 @@
   "dependencies": {
     "@discordjs/opus": "^0.3.2",
     "discord.js": "^12.4.0",
-    "iohook": "^0.6.6"
+    "dotenv": "^8.2.0",
+    "fp-ts": "^2.8.4",
+    "iohook": "^0.6.6",
+    "mqtt": "^4.2.1"
   }
 }
