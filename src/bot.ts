@@ -22,6 +22,7 @@ const MQTT_PORT = parseInt(process.env.PORT || '1883');
 const MQTT_URI = `${MQTT_PROCOL}://${MQTT_HOST}:${MQTT_PORT}`;
 
 const GAME_STATE = 'gameState';
+const LOBBY_CODE = 'lobbyCode';
 const TOKEN = process.env.DISCORD_TOKEN
 const myShortcut = [parseInt(process.env.ENABLE_SHORTCUT) || 67];
 
@@ -68,21 +69,30 @@ async function startGame(message: Discord.Message): Promise<void> {
         const { toggleEnabled, setMuted } = getOperations(state)(c);
 
         const mqttClient = await mqtt.connectAsync(MQTT_URI);
-		await mqttClient.subscribe(GAME_STATE);
+        await mqttClient.subscribe([GAME_STATE, LOBBY_CODE]);
 
-        mqttClient.on('message', async (topic: string, message: any) => {
-            console.log(topic, message.toString())
+        const sendLobbyCode = (code: string) => message.reply(`Lobby: ${code}`)
+
+        mqttClient.on('message', async (topic: string, msg: any) => {
+            console.log(topic, msg.toString())
             // await toggleEnabled()
             if (topic === GAME_STATE) {
                 const res = await pipe(
-                    (message.toString() as string).toLowerCase() as GameState,
+                    (msg.toString() as string).toLowerCase() as GameState,
                     TE.right,
                     TE.map(shouldMute),
                     TE.chain(
                         (muted) => TE.tryCatch(() => setMuted(muted), E.toError),
                     )
                 )()
-                E.mapLeft(E.toError)(res)
+                E.mapLeft(err => message.reply(err))(res)
+            } else if (topic === LOBBY_CODE) {
+                const res = await pipe(
+                    (msg.toString() as string),
+                    TE.right,
+                    TE.chain((code) => TE.tryCatch(() => sendLobbyCode(code), E.toError)),
+                )()
+                E.mapLeft(err => message.reply(err))(res)
             }
         })
 
